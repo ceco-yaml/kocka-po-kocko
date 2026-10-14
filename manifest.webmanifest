@@ -1,0 +1,13 @@
+{
+  "name": "Kocka po kocko",
+  "short_name": "Kocke",
+  "description": "Poštena ugankarska igra s kockami, brez oglasov.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4efe7",
+  "theme_color": "#f4efe7",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#f4efe7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Poštena ugankarska igra s kockami, brez oglasov in brez trikov.">
+  <title>Kocka po kocko</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">BREZ OGLASOV · POŠTENO NAKLJUČJE</p>
+        <h1>Kocka po kocko</h1>
+      </div>
+      <button class="icon-button" id="helpButton" aria-label="Kako igrati">?</button>
+    </header>
+
+    <section class="score-row" aria-label="Rezultat">
+      <div class="score-card">
+        <span>REZULTAT</span>
+        <strong id="score">0</strong>
+      </div>
+      <div class="score-card best">
+        <span>NAJBOLJŠI</span>
+        <strong id="bestScore">0</strong>
+      </div>
+      <button class="new-game" id="newGameButton">Nova igra</button>
+    </section>
+
+    <section class="game-area">
+      <div class="status-line">
+        <span class="fair-badge"><i></i> komplet je rešljiv</span>
+        <span id="comboMessage" aria-live="polite"></span>
+      </div>
+      <div class="board-wrap">
+        <div id="board" class="board" role="grid" aria-label="Igralna mreža 8 krat 8"></div>
+        <div id="clearFlash" class="clear-flash" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <section class="tray-section" aria-label="Kosi za postavitev">
+      <p class="tray-label">Povleci kos na mrežo <span>ali ga tapni, nato tapni mrežo</span></p>
+      <div id="tray" class="tray"></div>
+    </section>
+
+    <p class="privacy-note">Tvoj rezultat ostane samo na tej napravi.</p>
+  </main>
+
+  <dialog id="helpDialog">
+    <button class="dialog-close" id="closeHelp" aria-label="Zapri">×</button>
+    <p class="eyebrow">KAKO IGRATI</p>
+    <h2>Zapolni vrstico ali stolpec.</h2>
+    <p>Povleci enega od treh kosov na mrežo. Polna vrstica ali stolpec izgine in prinese dodatne točke.</p>
+    <p><strong>Pošteno pravilo:</strong> ko dobiš tri nove kose, igra preveri, da obstaja vsaj en način, kako odigrati vse tri — tudi če mora prvi kos najprej sprostiti prostor za drugega.</p>
+    <p>Vseeno izbiraj premišljeno: rešitev obstaja, ni pa vsaka poteza prava.</p>
+    <button class="dialog-action" id="gotItButton">Razumem</button>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>
