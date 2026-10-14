@@ -150,15 +150,35 @@ function showPreview(piece,row,col,valid) {
     }
   });
 }
-function boardPosition(clientX,clientY,piece,fromDrag=false) {
+function boardMetrics() {
   const rect=boardEl.getBoundingClientRect();
   const gap=parseFloat(getComputedStyle(boardEl).gap)||0;
   const cell=(rect.width-gap*(SIZE-1))/SIZE;
-  const lift=fromDrag ? cell*.75 : 0;
-  const col=Math.floor((clientX-rect.left)/(cell+gap));
-  const row=Math.floor((clientY-lift-rect.top)/(cell+gap));
+  return {rect,gap,cell,step:cell+gap};
+}
+function dragCenter(clientX,clientY,pointerType,cell) {
+  // Na dotik kos dvignemo ravno toliko, da ga prst ne zakrije. Miška ostane brez odmika.
+  const lift=pointerType==='touch' ? Math.min(cell*1.25,58) : pointerType==='pen' ? cell*.55 : 0;
+  return {x:clientX,y:clientY-lift,lift};
+}
+function boardPosition(clientX,clientY,piece,fromDrag=false,pointerType='mouse') {
+  const {rect,gap,cell,step}=boardMetrics();
   const b=bounds(piece.shape);
-  return {row:Math.min(row,SIZE-b.height),col:Math.min(col,SIZE-b.width)};
+  let row,col;
+  if(fromDrag){
+    const center=dragCenter(clientX,clientY,pointerType,cell);
+    const pieceWidth=b.width*cell+(b.width-1)*gap;
+    const pieceHeight=b.height*cell+(b.height-1)*gap;
+    col=Math.round((center.x-rect.left-pieceWidth/2)/step);
+    row=Math.round((center.y-rect.top-pieceHeight/2)/step);
+  } else {
+    col=Math.floor((clientX-rect.left)/step);
+    row=Math.floor((clientY-rect.top)/step);
+  }
+  return {
+    row:Math.max(0,Math.min(row,SIZE-b.height)),
+    col:Math.max(0,Math.min(col,SIZE-b.width))
+  };
 }
 
 function startDrag(e,index) {
@@ -168,10 +188,11 @@ function startDrag(e,index) {
   renderTray();
   const piece=tray[index];
   const ghost=makePieceGrid(piece,'piece-grid drag-ghost');
-  const cell=(boardEl.getBoundingClientRect().width-(SIZE-1)*5)/SIZE;
+  const {cell,gap}=boardMetrics();
   ghost.style.setProperty('--ghost-cell',`${cell}px`);
+  ghost.style.gap=`${gap}px`;
   document.body.append(ghost);
-  drag={index,ghost,moved:false,startX:e.clientX,startY:e.clientY};
+  drag={index,ghost,moved:false,startX:e.clientX,startY:e.clientY,pointerType:e.pointerType||'mouse'};
   moveDrag(e);
   window.addEventListener('pointermove',moveDrag,{passive:false});
   window.addEventListener('pointerup',endDrag,{once:true});
@@ -180,13 +201,15 @@ function startDrag(e,index) {
 function moveDrag(e) {
   if(!drag) return;
   e.preventDefault();
-  drag.ghost.style.left=`${e.clientX}px`; drag.ghost.style.top=`${e.clientY}px`;
+  const metrics=boardMetrics();
+  const center=dragCenter(e.clientX,e.clientY,drag.pointerType,metrics.cell);
+  drag.ghost.style.left=`${center.x}px`; drag.ghost.style.top=`${center.y}px`;
   if(Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>8) drag.moved=true;
-  const rect=boardEl.getBoundingClientRect();
-  const over=e.clientX>=rect.left&&e.clientX<=rect.right&&e.clientY>=rect.top&&e.clientY<=rect.bottom+60;
+  const rect=metrics.rect;
+  const over=center.x>=rect.left&&center.x<=rect.right&&center.y>=rect.top&&center.y<=rect.bottom;
   if(over){
     const piece=tray[drag.index];
-    const pos=boardPosition(e.clientX,e.clientY,piece,true);
+    const pos=boardPosition(e.clientX,e.clientY,piece,true,drag.pointerType);
     showPreview(piece,pos.row,pos.col,canPlace(board,piece.shape,pos.row,pos.col));
     drag.pos=pos;
   } else { clearPreview(); drag.pos=null; }
