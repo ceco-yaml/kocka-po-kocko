@@ -61,7 +61,17 @@
     <p>Povleci enega od treh kosov na mrežo. Polna vrstica ali stolpec izgine in prinese dodatne točke.</p>
     <p><strong>Pošteno pravilo:</strong> ko dobiš tri nove kose, igra preveri, da obstaja vsaj en način, kako odigrati vse tri — tudi če mora prvi kos najprej sprostiti prostor za drugega.</p>
     <p>Vseeno izbiraj premišljeno: rešitev obstaja, ni pa vsaka poteza prava.</p>
+    <p>Če kos spustiš tam, kjer ni prostora, ostane v tvoji roki. Premakni ga na zeleno označeno mesto ali ga povleci nazaj med preostale kose.</p>
     <button class="dialog-action" id="gotItButton">Razumem</button>
+  </dialog>
+
+  <dialog id="gameOverDialog">
+    <p class="eyebrow">KONEC IGRE</p>
+    <h2>Zmanjkalo je prostora.</h2>
+    <p>Nobenega od preostalih kosov ni mogoče postaviti na mrežo.</p>
+    <div class="final-score"><span>REZULTAT</span><strong id="finalScore">0</strong></div>
+    <button class="dialog-action" id="restartButton">Nova igra</button>
+    <button class="dialog-secondary" id="inspectBoardButton">Poglej mrežo</button>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

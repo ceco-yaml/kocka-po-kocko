@@ -75,11 +75,16 @@ h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp
 .piece-slot { position: relative; min-width: 0; min-height: 100px; display: grid; place-items: center; border: 1px solid rgba(23,37,31,.09); border-radius: 18px; background: rgba(255,255,255,.33); cursor: grab; touch-action: none; transition: transform .14s ease, opacity .2s ease, border-color .15s ease, background .15s ease; }
 .piece-slot:active { cursor: grabbing; }
 .piece-slot.selected { border-color: var(--green); background: rgba(46,125,91,.08); transform: translateY(-3px); }
+.piece-slot.dragging { opacity: .18; pointer-events: none; }
+.piece-slot.blocked:not(.used) { border-color: rgba(207,95,89,.25); background: rgba(207,95,89,.055); }
+.piece-slot.blocked:not(.used)::after { content: "ni prostora"; position:absolute; bottom:7px; color:var(--red); font-size:8px; font-weight:850; letter-spacing:.06em; text-transform:uppercase; }
 .piece-slot.used { opacity: .18; pointer-events: none; }
 .piece-grid { display: grid; gap: 4px; }
 .piece-block { width: clamp(16px, 5.8vw, 26px); aspect-ratio: 1; border-radius: 5px; background: var(--piece-color); box-shadow: inset 0 2px 0 rgba(255,255,255,.25), inset 0 -2px 0 rgba(0,0,0,.09), 0 2px 4px rgba(0,0,0,.1); }
 .piece-empty { width: clamp(16px, 5.8vw, 26px); aspect-ratio: 1; }
 .drag-ghost { position: fixed; z-index: 30; pointer-events: none; opacity: .9; filter: drop-shadow(0 8px 8px rgba(0,0,0,.2)); transform: translate(-50%,-50%); }
+.drag-ghost.parked { pointer-events: auto; cursor: grab; animation: held-pulse .9s ease-in-out infinite alternate; }
+@keyframes held-pulse { to { filter: drop-shadow(0 10px 12px rgba(207,95,89,.34)); transform: translate(-50%,-50%) scale(1.035); } }
 .drag-ghost .piece-block, .drag-ghost .piece-empty { width: var(--ghost-cell); }
 .privacy-note { margin: auto 0 0; padding-top: 12px; text-align: center; font-size: 10px; color: var(--muted); }
 
@@ -89,6 +94,10 @@ dialog h2 { margin: 4px 30px 12px 0; font-family: Georgia, serif; font-size: 29p
 dialog p:not(.eyebrow) { color: #4d5952; font-size: 14px; line-height: 1.55; }
 .dialog-close { position: absolute; right: 16px; top: 14px; border:0; background:transparent; font-size:28px; color:var(--muted); cursor:pointer; }
 .dialog-action { width:100%; margin-top:7px; border:0; border-radius:14px; padding:13px; color:white; background:var(--green); font-weight:800; cursor:pointer; }
+.dialog-secondary { width:100%; margin-top:8px; border:1px solid rgba(23,37,31,.15); border-radius:14px; padding:12px; color:var(--ink); background:transparent; font-weight:750; cursor:pointer; }
+.final-score { display:flex; align-items:baseline; justify-content:space-between; margin:20px 0 10px; padding:14px 16px; border-radius:14px; background:var(--paper); }
+.final-score span { color:var(--muted); font-size:10px; font-weight:850; letter-spacing:.12em; }
+.final-score strong { color:var(--orange); font-size:30px; line-height:1; }
 .toast { position: fixed; left:50%; bottom: max(24px, env(safe-area-inset-bottom)); z-index:50; transform:translate(-50%,20px); padding:10px 15px; border-radius:99px; background:var(--ink); color:white; font-size:12px; font-weight:700; opacity:0; pointer-events:none; transition:.2s ease; white-space:nowrap; }
 .toast.show { opacity:1; transform:translate(-50%,0); }
 

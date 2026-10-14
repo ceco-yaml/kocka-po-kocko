@@ -22,6 +22,7 @@ const comboEl = document.querySelector('#comboMessage');
 const toastEl = document.querySelector('#toast');
 const flashEl = document.querySelector('#clearFlash');
 const helpDialog = document.querySelector('#helpDialog');
+const gameOverDialog = document.querySelector('#gameOverDialog');
 
 let board = emptyBoard();
 let tray = [];
@@ -31,6 +32,7 @@ let selectedIndex = null;
 let previewCells = [];
 let drag = null;
 let combo = 0;
+let gameEnded = false;
 
 function emptyBoard() { return Array.from({length: SIZE}, () => Array(SIZE).fill(null)); }
 function cloneBoard(b) { return b.map(row => row.slice()); }
@@ -124,10 +126,11 @@ function renderTray() {
   trayEl.innerHTML='';
   tray.forEach((piece,index)=>{
     const slot=document.createElement('div');
-    slot.className='piece-slot'+(piece.used?' used':'')+(selectedIndex===index?' selected':'');
+    const blocked=!piece.used&&placements(board,piece.shape).length===0;
+    slot.className='piece-slot'+(piece.used?' used':'')+(selectedIndex===index?' selected':'')+(blocked?' blocked':'');
     slot.dataset.index=index;
     slot.setAttribute('role','button');
-    slot.setAttribute('aria-label',piece.used?'Uporabljen kos':`Kos ${index+1}`);
+    slot.setAttribute('aria-label',piece.used?'Uporabljen kos':blocked?`Kos ${index+1}, ni prostora`:`Kos ${index+1}`);
     slot.append(makePieceGrid(piece));
     if(!piece.used) slot.addEventListener('pointerdown', e=>startDrag(e,index));
     trayEl.append(slot);
@@ -181,6 +184,15 @@ function boardPosition(clientX,clientY,piece,fromDrag=false,pointerType='mouse')
   };
 }
 
+function nearestValidPosition(piece,wanted,maxDistance=1.35) {
+  let best=null;
+  for(const [row,col] of placements(board,piece.shape)) {
+    const distance=Math.hypot(row-wanted.row,col-wanted.col);
+    if(!best||distance<best.distance) best={row,col,distance};
+  }
+  return best&&best.distance<=maxDistance?{row:best.row,col:best.col}:null;
+}
+
 function startDrag(e,index) {
   if(e.button!==undefined&&e.button!==0) return;
   e.preventDefault();
@@ -193,6 +205,7 @@ function startDrag(e,index) {
   ghost.style.gap=`${gap}px`;
   document.body.append(ghost);
   drag={index,ghost,moved:false,startX:e.clientX,startY:e.clientY,pointerType:e.pointerType||'mouse'};
+  trayEl.children[index]?.classList.add('dragging');
   moveDrag(e);
   window.addEventListener('pointermove',moveDrag,{passive:false});
   window.addEventListener('pointerup',endDrag,{once:true});
@@ -209,20 +222,52 @@ function moveDrag(e) {
   const over=center.x>=rect.left&&center.x<=rect.right&&center.y>=rect.top&&center.y<=rect.bottom;
   if(over){
     const piece=tray[drag.index];
-    const pos=boardPosition(e.clientX,e.clientY,piece,true,drag.pointerType);
-    showPreview(piece,pos.row,pos.col,canPlace(board,piece.shape,pos.row,pos.col));
-    drag.pos=pos;
+    const wanted=boardPosition(e.clientX,e.clientY,piece,true,drag.pointerType);
+    const exact=canPlace(board,piece.shape,wanted.row,wanted.col)?wanted:null;
+    const pos=exact||nearestValidPosition(piece,wanted);
+    if(pos){ showPreview(piece,pos.row,pos.col,true); drag.pos=pos; }
+    else { showPreview(piece,wanted.row,wanted.col,false); drag.pos=null; }
   } else { clearPreview(); drag.pos=null; }
 }
 function endDrag(e) {
   window.removeEventListener('pointermove',moveDrag);
+  window.removeEventListener('pointercancel',cancelDrag);
   if(!drag) return;
   const {index,ghost,pos,moved}=drag;
-  ghost.remove(); drag=null; clearPreview();
-  if(moved&&pos&&canPlace(board,tray[index].shape,pos.row,pos.col)) playPiece(index,pos.row,pos.col);
-  else { selectedIndex=index; renderTray(); }
+  const trayRect=trayEl.getBoundingClientRect();
+  const overTray=e.clientX>=trayRect.left&&e.clientX<=trayRect.right&&e.clientY>=trayRect.top-16&&e.clientY<=trayRect.bottom+16;
+  if(moved&&pos&&canPlace(board,tray[index].shape,pos.row,pos.col)) {
+    ghost.remove(); drag=null; clearPreview(); playPiece(index,pos.row,pos.col); return;
+  }
+  if(moved&&overTray) {
+    ghost.remove(); drag=null; clearPreview(); selectedIndex=null; renderTray(); showToast('Kos je nazaj med kosi'); return;
+  }
+  if(moved) {
+    clearPreview();
+    drag.pos=null; drag.moved=false;
+    ghost.classList.add('parked');
+    ghost.addEventListener('pointerdown',resumeHeldPiece,{once:true});
+    showToast('Ni prostora — premakni kos ali ga vrni nazaj');
+    return;
+  }
+  ghost.remove(); drag=null; clearPreview(); selectedIndex=index; renderTray();
 }
-function cancelDrag(){ if(drag){drag.ghost.remove();drag=null;} clearPreview(); window.removeEventListener('pointermove',moveDrag); }
+function resumeHeldPiece(e) {
+  if(!drag) return;
+  e.preventDefault();
+  drag.ghost.classList.remove('parked');
+  drag.ghost.style.pointerEvents='none';
+  drag.startX=e.clientX; drag.startY=e.clientY; drag.moved=true; drag.pointerType=e.pointerType||'mouse';
+  moveDrag(e);
+  window.addEventListener('pointermove',moveDrag,{passive:false});
+  window.addEventListener('pointerup',endDrag,{once:true});
+  window.addEventListener('pointercancel',cancelDrag,{once:true});
+}
+function cancelDrag(){ if(drag){drag.ghost.remove();drag=null;} clearPreview(); selectedIndex=null; renderTray(); window.removeEventListener('pointermove',moveDrag); window.removeEventListener('pointerup',endDrag); }
+
+function anyMoveAvailable() {
+  return tray.some(piece=>!piece.used&&placements(board,piece.shape).length>0);
+}
 
 boardEl.addEventListener('pointerdown',e=>{
   if(selectedIndex===null) return;
@@ -251,15 +296,18 @@ function playPiece(index,row,col) {
     const next=dealSolvableTrio();
     if(next){ tray=next; setTimeout(renderTray,150); }
     else gameOver();
-  }
+  } else if(!anyMoveAvailable()) gameOver();
 }
 
 function gameOver() {
-  showToast('Ni več mogoče sestaviti rešljivega kompleta.');
-  setTimeout(()=>{ if(confirm(`Konec igre — dosegel si ${score} točk. Nova igra?`)) newGame(); },300);
+  if(gameEnded) return;
+  gameEnded=true;
+  document.querySelector('#finalScore').textContent=score;
+  setTimeout(()=>gameOverDialog.showModal(),260);
 }
 function newGame() {
-  board=emptyBoard(); score=0; combo=0; selectedIndex=null;
+  if(gameOverDialog.open) gameOverDialog.close();
+  board=emptyBoard(); score=0; combo=0; selectedIndex=null; gameEnded=false;
   tray=dealSolvableTrio();
   renderBoard();renderTray();renderScores();
   showToast('Nova poštena igra');
@@ -273,6 +321,8 @@ document.querySelector('#newGameButton').addEventListener('click',()=>{ if(score
 document.querySelector('#helpButton').addEventListener('click',()=>helpDialog.showModal());
 document.querySelector('#closeHelp').addEventListener('click',()=>helpDialog.close());
 document.querySelector('#gotItButton').addEventListener('click',()=>helpDialog.close());
+document.querySelector('#restartButton').addEventListener('click',newGame);
+document.querySelector('#inspectBoardButton').addEventListener('click',()=>gameOverDialog.close());
 helpDialog.addEventListener('click',e=>{if(e.target===helpDialog)helpDialog.close();});
 
 bestEl.textContent=bestScore;
